@@ -1,6 +1,7 @@
 (ns space-defense-force.windowing
   "I think this problem might best be framed as a windowing challenge."
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; a minimal example
@@ -125,6 +126,19 @@ o-")
                    count))
       rect)))
 
+(defn fuzzy-match2
+  "Returns XY coordinates of `rect` if `shape` matches its signal within `tolerance`"
+  [shape [xy rect] tolerance]
+  (let [xs (range 0 (count rect))
+        ys (range 0 (count (first rect)))]
+    (when (>= tolerance
+              (->> (for [x xs, y ys] [x y])  ; all combos
+                   (map (fn [[x y]] (= (get-in rect [x y])
+                                      (get-in shape [x y]))))
+                   (filter false?)
+                   count))
+      xy)))
+
 (comment ;;;; fuzzy match
 
   (fuzzy-match min-search-term2 [[0 1] [0 1] [0 0]] 2) ; nil
@@ -136,5 +150,39 @@ o-")
         tolerance 1]
     (some (fn [rect] (fuzzy-match shape rect 3))
           (permutations 2 3 search-space)))
+
+  (let [shape min-search-term2
+        search-space min-radar
+        tolerance 1]
+    (some (fn [[xy rect]] (fuzzy-match2 shape [xy rect] 1))
+          (permutations-by-xy 2 3 search-space)))
+  
+  )
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+ ;;;; apply to sample dats
+
+(def radar-sample
+  (->binary-vec (slurp (io/resource "samples/radar1"))))
+
+(def invader1 (->binary-vec (slurp (io/resource "samples/invader1"))))
+(def invader2 (->binary-vec (slurp (io/resource "samples/invader2"))))
+
+(defn dims
+  "Returns width and height of rectangular vector of vectors `shape`"
+  [shape]
+  ;; TODO assert rectangularity and vectorness
+  [(count (first shape))
+   (count shape)])
+
+(comment
+  (let [shape invader1
+        search-space radar-sample
+        tolerance 8
+        [x y] (dims shape)]
+    (some (fn [[xy rect]] (fuzzy-match2 shape [xy rect] tolerance))
+          (permutations-by-xy x y search-space)))
+  [60 13]
+  
   
   )
