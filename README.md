@@ -1,4 +1,10 @@
-# Development assignment
+# Radar detection of invaders
+A Space Defense Force project.
+
+This system detects invaders in radar ASCII patterns.
+
+
+## Assignment
 
 Space invaders are upon us!
 You were shortlisted as one of the great minds to help us track them down.
