@@ -1,5 +1,7 @@
 (ns space-defense-force.windowing
   "I think this problem might best be framed as a windowing challenge."
+  {:doc "This namespace is DEPRECATED; see `space-defense-force.radar`"
+   :deprecated "0.0.1"}
   (:require [clojure.string :as str]
             [clojure.java.io :as io]))
 
@@ -191,3 +193,11 @@ o-")
          (permutations-by-xy xy search-space)))
   
   )
+
+
+(defn possible-invaders
+  "Returns coordinates where "
+  [shape search-space tolerance]
+  (let [xy (dims shape)]
+    (keep (fn [[xy rect]] (fuzzy-match2 shape [xy rect] tolerance))
+          (permutations-by-xy xy search-space))))
