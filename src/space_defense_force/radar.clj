@@ -129,8 +129,8 @@
   (fuzzy-match [[1 1]
                 [1 0]]
                [[1 1]
-                [1 0]]
-               0)
+                [1 1]]
+               1 #_0)
 
   (fuzzy-match [[1 1] 
                 [1 0] 
@@ -158,17 +158,29 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Recommended public API
 
-(defn possible-invaders
-  "Returns coordinates where "; FIXME
+(defn invader-suspicions
+  "Returns matches of invader `shape` in `search-space` within `tolerance`"
   [shape search-space tolerance]
   (let [xy (dims shape)]
     (keep (fn [[xy rect]] (when-let [m (fuzzy-match shape rect tolerance)]
                            (assoc m :coords xy)))
           (permutations-by-xy xy search-space))))
 
-;; TODO API to handle multiple shapes
+(comment
+  (invader-suspicions dbg:invader1 dbg:radar-sample 8)
+
+  )
+
+(defn possible-invaders
+  "Returns matches for any invader `shapes` in the `search-space`
+  Allows for `tolerance` number of mismatches points to account for noise."
+  [shapes search-space tolerance]
+  (mapcat #(invader-suspicions % search-space tolerance)
+          shapes))
 
 (comment
-  (possible-invaders dbg:invader1 dbg:radar-sample 8)
+  (possible-invaders [dbg:invader1 dbg:invader2]
+                     dbg:radar-sample
+                     15)
 
   )
