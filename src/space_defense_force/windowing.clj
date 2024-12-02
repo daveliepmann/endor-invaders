@@ -76,7 +76,7 @@ o-")
 
 (defn permutations-by-xy
   "Returns rectangles n wide, m tall in colls, keyed by original xy coordinates"
-  [n m colls]
+  [[n m :as _dimensions] colls]
   (into {}
         (mapcat (fn [[y-idx xs]]
                   (map-indexed (fn [x-idx itm] {[x-idx y-idx] itm})
@@ -86,7 +86,7 @@ o-")
                      (partition m 1 colls))))
 
 (comment
-  (permutations-by-xy 2 2 min-radar)
+  (permutations-by-xy [2 2] min-radar)
   ;; {[0 0] [[0 1]
   ;;         [0 1]],
   ;;  [0 1] [[0 1]
@@ -100,7 +100,7 @@ o-")
   ;;  [2 1] [[0 0]
   ;;         [0 0]]}
  
- (permutations-by-xy 2 3 min-radar)
+ (permutations-by-xy [2 3] min-radar)
  ;; {[0 0] [[0 1]
  ;;         [0 1]
  ;;         [0 0]],
@@ -155,7 +155,7 @@ o-")
         search-space min-radar
         tolerance 1]
     (some (fn [[xy rect]] (fuzzy-match2 shape [xy rect] 1))
-          (permutations-by-xy 2 3 search-space)))
+          (permutations-by-xy [2 3] search-space)))
   
   )
 
@@ -176,13 +176,18 @@ o-")
    (count shape)])
 
 (comment
-  (let [shape invader1
+   (let [shape invader1
+        search-space radar-sample
+        tolerance 12 #_ 8
+        xy (dims shape)]
+    (keep #_some (fn [[xy rect]] (fuzzy-match2 shape [xy rect] tolerance))
+         (permutations-by-xy xy search-space)))
+
+  (let [shape invader2 #_ invader1
         search-space radar-sample
         tolerance 8
-        [x y] (dims shape)]
-    (some (fn [[xy rect]] (fuzzy-match2 shape [xy rect] tolerance))
-          (permutations-by-xy x y search-space)))
-  [60 13]
-  
+        xy (dims shape)]
+    (keep (fn [[xy rect]] (fuzzy-match2 shape [xy rect] tolerance))
+         (permutations-by-xy xy search-space)))
   
   )
