@@ -243,9 +243,9 @@
         invader-right-edge (get (permutations-by-xy [edge-width (count invader)] invader)
                                 [(dec (count (first invader)))
                                  0])
-        radar-left-ledge (get (permutations-by-xy [edge-width (count invader)] radar)
+        radar-left-edge (get (permutations-by-xy [edge-width (count invader)] radar)
                               [0 0])]
-     (possible-invaders [invader-right-edge] radar-left-ledge 0))
+     (possible-invaders [invader-right-edge] radar-left-edge 0))
 
   (let [radar [[1 1 1]
                [1 1 1]
@@ -257,22 +257,22 @@
         invader-right-edge (get (permutations-by-xy [edge-width (count invader)] invader)
                                 [(- (count (first invader)) edge-width)
                                  0])
-        radar-left-ledge (get (permutations-by-xy [edge-width (count invader)] radar)
+        radar-left-edge (get (permutations-by-xy [edge-width (count invader)] radar)
                               [0 0])]
-     (possible-invaders [invader-right-edge] radar-left-ledge 1))
+     (possible-invaders [invader-right-edge] radar-left-edge 1))
 
   )
 
 
 (defn invader's-right-edge-detector
-  "Detects the `width` right columns of `shape` on the left edge of `search-space` allowing for `tolerance` mismatches"
+  "Detects the `width` right columns of `shape` on the left edge of `search-space`, allowing for `tolerance` mismatches"
   [shape search-space tolerance width]
   (let [invader-right-edge (get (permutations-by-xy [width (count shape)] shape)
                                 [(- (count (first shape)) width)
                                  0])
-        radar-left-ledge (get (permutations-by-xy [width (count search-space)] search-space)
+        radar-left-edge (get (permutations-by-xy [width (count search-space)] search-space)
                               [0 0])]
-    (possible-invaders [invader-right-edge] radar-left-ledge tolerance)))
+    (possible-invaders [invader-right-edge] radar-left-edge tolerance)))
 
 
 (comment
@@ -315,14 +315,14 @@
 
 
 (defn invader's-left-edge-detector
-  "Detects the `width` left columns of `shape` on the right edge of `search-space` allowing for `tolerance` mismatches"
+  "Detects the `width` left columns of `shape` on the right edge of `search-space`, allowing for `tolerance` mismatches"
   [shape search-space tolerance width]
   (let [invader-right-edge (get (permutations-by-xy [width (count shape)] shape)
                                 [0 0])
-        radar-left-ledge (get (permutations-by-xy [width (count search-space)] search-space)
+        radar-left-edge (get (permutations-by-xy [width (count search-space)] search-space)
                               [(- (count (first search-space)) width)
                                0])]
-    (possible-invaders [invader-right-edge] radar-left-ledge tolerance)))
+    (possible-invaders [invader-right-edge] radar-left-edge tolerance)))
 
 (comment
   ;; minimum example: exact match of single col
@@ -356,14 +356,14 @@
 
 
 (defn invader's-top-edge-detector
-  "Detects the `height` top columns of `shape` on the bottom edge of `search-space` allowing for `tolerance` mismatches"
+  "Detects the `height` top columns of `shape` on the bottom edge of `search-space`, allowing for `tolerance` mismatches"
   [shape search-space tolerance height]
   (let [invader-top-edge (get (permutations-by-xy [(count (first shape)) height] shape)
                                 [0 0])
-        radar-bottom-ledge (get (permutations-by-xy [(count (first search-space)) height] search-space)
+        radar-bottom-edge (get (permutations-by-xy [(count (first search-space)) height] search-space)
                                 [0
                                  (- (count search-space) height)])]
-    (possible-invaders [invader-top-edge] radar-bottom-ledge tolerance)))
+    (possible-invaders [invader-top-edge] radar-bottom-edge tolerance)))
 
 (comment
   ;; minimum example: exact match of single row
@@ -406,5 +406,53 @@
   )
 
 
+(defn invader's-bottom-edge-detector
+  "Detects the `height` bottom columns of `shape` on the top edge of `search-space`, allowing for `tolerance` mismatches"
+  [shape search-space tolerance height]
+  (let [invader-bottom-edge (get (permutations-by-xy [(count (first shape)) height] shape)
+                                 [0 (- (count shape) height)])
+        radar-top-edge (get (permutations-by-xy [(count (first search-space)) height] search-space)
+                                [0 0])]
+    (possible-invaders [invader-bottom-edge] radar-top-edge tolerance)))
 
-;; TODO bottom, corners
+(comment
+  ;; minimum example: exact match of single row
+  (invader's-bottom-edge-detector [[0 0 0]
+                                   [1 1 1]]
+                                  [[1 1 1]
+                                   [0 0 0]
+                                   [0 0 0]]
+                                  0 1)
+  
+  ;; mismatch width
+  (invader's-bottom-edge-detector [[0 0]
+                                   [1 1]]
+                                  [[0 1 1]
+                                   [0 0 0]
+                                   [0 0 0]]
+                                  0 1)
+
+  ;; multiple matches
+  (invader's-bottom-edge-detector [[0 0]
+                                   [1 1]]
+                                  [[0 1 1 1]
+                                   [0 0 0 0]
+                                   [0 0 0 0]
+                                   [0 0 0 0]]
+                                  ;; note: 2 matches with 0 tolerance; 3 w/1
+                                  0 1)
+
+  ;; deeper height
+  (invader's-bottom-edge-detector [[0 0]
+                                   [1 1]
+                                   [1 1]]
+                                  [[1 1 1 1]
+                                   [1 1 0 1]
+                                   [0 0 0 0]
+                                   [0 0 0 0]]
+                                  ;; note: 1 match with 0 tolerance
+                                  1 2)
+  
+  )
+
+;; TODO corners
