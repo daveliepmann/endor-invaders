@@ -314,4 +314,44 @@
   )
 
 
-;; TODO left, top, bottom, corners
+(defn invader's-left-edge-detector
+  "Detects the `width` left columns of `shape` on the right edge of `search-space` within `tolerance`"
+  [shape search-space tolerance width]
+  (let [invader-right-edge (get (permutations-by-xy [width (count shape)] shape)
+                                [0 0])
+        radar-left-ledge (get (permutations-by-xy [width (count search-space)] search-space)
+                              [(- (count (first search-space)) width)
+                               0])]
+    (possible-invaders [invader-right-edge] radar-left-ledge tolerance)))
+
+(comment
+  ;; minimum example: exact match of single col
+  (invader's-left-edge-detector [[0 1 1]
+                                 [0 1 1]
+                                 [0 1 1]]
+                                [[1 1 0]
+                                 [1 1 0]
+                                 [1 1 0]]
+                                0 1)
+
+  ;; mismatch height
+  (invader's-left-edge-detector [[1 1 1]
+                                 [1 1 1]]
+                                [[0 0 0]
+                                 [0 0 1]
+                                 [0 0 1]]
+                                0 1)
+
+  ;; multiple matches
+  (invader's-left-edge-detector [[1 1 1]
+                                 [1 1 1]]
+                                [[0 1 1]
+                                 [0 1 1]
+                                 [0 1 1]
+                                 [0 0 1]]
+                                ;; note: only 2 matches with 0 tolerance
+                                1 2)
+
+  )
+
+;; TODO top, bottom, corners
