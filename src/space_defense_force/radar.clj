@@ -265,7 +265,7 @@
 
 
 (defn invader's-right-edge-detector
-  "Detects the `width` right columns of `shape` on the left edge of `search-space` within `tolerance`"
+  "Detects the `width` right columns of `shape` on the left edge of `search-space` allowing for `tolerance` mismatches"
   [shape search-space tolerance width]
   (let [invader-right-edge (get (permutations-by-xy [width (count shape)] shape)
                                 [(- (count (first shape)) width)
@@ -315,7 +315,7 @@
 
 
 (defn invader's-left-edge-detector
-  "Detects the `width` left columns of `shape` on the right edge of `search-space` within `tolerance`"
+  "Detects the `width` left columns of `shape` on the right edge of `search-space` allowing for `tolerance` mismatches"
   [shape search-space tolerance width]
   (let [invader-right-edge (get (permutations-by-xy [width (count shape)] shape)
                                 [0 0])
@@ -354,4 +354,57 @@
 
   )
 
-;; TODO top, bottom, corners
+
+(defn invader's-top-edge-detector
+  "Detects the `height` top columns of `shape` on the bottom edge of `search-space` allowing for `tolerance` mismatches"
+  [shape search-space tolerance height]
+  (let [invader-top-edge (get (permutations-by-xy [(count (first shape)) height] shape)
+                                [0 0])
+        radar-bottom-ledge (get (permutations-by-xy [(count (first search-space)) height] search-space)
+                                [0
+                                 (- (count search-space) height)])]
+    (possible-invaders [invader-top-edge] radar-bottom-ledge tolerance)))
+
+(comment
+  ;; minimum example: exact match of single row
+  (invader's-top-edge-detector [[1 1 1]
+                                [0 0 0]
+                                [0 0 0]]
+                               [[0 0 0]
+                                [0 0 0]
+                                [1 1 1]]
+                                0 1)
+  
+  ;; mismatch width
+  (invader's-top-edge-detector [[1 1]
+                                [0 0]]
+                               [[0 0 0]
+                                [0 0 1]
+                                [0 1 1]]
+                               0 1)
+
+  ;; multiple matches
+  (invader's-top-edge-detector [[1 1]
+                                [0 0]]
+                                [[0 0 0 0]
+                                 [0 0 0 0]
+                                 [0 0 0 0]
+                                 [0 1 1 1]]
+                                ;; note: only 2 matches with 0 tolerance
+                                0 1)
+
+  ;; deeper height
+  (invader's-top-edge-detector [[1 1]
+                                [1 1]]
+                               [[0 0 0 0]
+                                [0 0 0 0]
+                                [1 1 1 1]
+                                [0 1 0 1]]
+                               ;; note: 0 matches with 0 tolerance
+                               1 #_0 2)
+  
+  )
+
+
+
+;; TODO bottom, corners
