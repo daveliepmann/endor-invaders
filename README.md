@@ -1,6 +1,8 @@
 # Radar detection of invaders
 A Space Defense Force system to detects invaders in radar ASCII patterns. 
 
+Known shapes are detected within user-set tolerances. Shapes partially within the radar signal are detectable with specialized functions. Integrating these functions with the primary detection mechanism is WIP.
+
 See the `space-defense-force.radar` namespace, especially its docstring and rich comments.
 
 No large language models were used in the implementation of this system.

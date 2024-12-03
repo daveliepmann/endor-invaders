@@ -4,7 +4,10 @@
   Fns to reveal possible locations of known hostiles in ASCII radar
   signals. Representative signals are in `resources/samples`.
 
-  API consumers: see 'Recommended public API' and `invaders->matches`
+  API consumers: see 'Recommended public API' and `invaders->matches`. Fns
+  supporting detection of partial shapes at the edges work, but are not yet
+  integrated in the main detection fn. See `invader's-right-edge-detector` &
+  friends.
 
   A Match is a map describing an area of interest. It has keys:
    `:known-shape` - input parameter describing possibly-detected invader rectangle
@@ -445,9 +448,46 @@
        (map assoc-score)
        (sort-by :score)))
 
-(comment
+(comment ;; basic usage
   (invaders->matches [dbg:invader1 dbg:invader2]
                      dbg:radar-sample
                      15)
 
+
   )
+
+(comment ;;; integrating edge cases into main detection fn: experiments
+  (let [inv-2x4 [[0 0]
+                 [0 0]
+                 [1 0]
+                 [0 1]]
+        search-space [[0 1 0 0]
+                      [0 1 0 0]
+                      [0 1 0 0]
+                      [1 0 1 0]
+                      [0 0 0 1]]
+        tolerance 0]
+    (concat (invaders->matches [inv-2x4] search-space tolerance)
+            (invader's-right-edge-detector inv-2x4 search-space tolerance 1)
+            (invader's-left-edge-detector inv-2x4 search-space tolerance 1)
+            (invader's-top-edge-detector inv-2x4 search-space tolerance 1)
+            (invader's-bottom-edge-detector inv-2x4 search-space tolerance 1)))
+
+  
+  (let [inv-4x4 [[0 0 0 0]
+                 [0 0 0 0]
+                 [1 0 0 0]
+                 [0 0 0 1]]
+        search-space [[0 1 0 0]
+                      [0 1 0 0]
+                      [0 1 0 1]
+                      [1 0 1 0]
+                      [0 0 0 0]]
+        tolerance 0]
+    (concat (invaders->matches [inv-4x4] search-space tolerance)
+            (invader's-right-edge-detector  inv-4x4 search-space tolerance 1)
+            (invader's-left-edge-detector   inv-4x4 search-space tolerance 1)
+            (invader's-top-edge-detector    inv-4x4 search-space tolerance 1)
+            (invader's-bottom-edge-detector inv-4x4 search-space tolerance 1)))
+  
+ )

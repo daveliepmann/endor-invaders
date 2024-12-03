@@ -89,3 +89,5 @@
                   scan-result))
       (is (= #{[60 13] [16 28] [82 41] [42 0]}
              (set (map :coords scan-result)))))))
+
+;; TODO test edge detection fns `invader's-right-edge-detector` usw.
