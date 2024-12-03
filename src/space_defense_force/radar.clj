@@ -27,9 +27,11 @@
   "Returns width and height of rectangular vector of vectors `shape`"
   [shape]
   (when-not (and (vector? shape) (every? vector? shape))
-    (throw (IllegalArgumentException. "dims not defined if shape is not vector of vectors")))
+    (throw (ex-info "dims not defined if shape is not vector of vectors"
+                    {:kind :fail/illegal-argument, :shape shape})))
   (when-not (apply = (map count shape))
-    (throw (IllegalArgumentException. "dims not defined for non-rectangular shapes")))
+    (throw (ex-info "dims not defined for non-rectangular shapes"
+                    {:kind :fail/illegal-argument, :counts (map count shape)})))
   [(count (first shape))
    (count shape)])
 
@@ -199,14 +201,117 @@
        (sort-by :score)))
 
 (comment
-  (map :score (possible-invaders [dbg:invader1 dbg:invader2]
-                      dbg:radar-sample
-                      15))
+  (possible-invaders [dbg:invader1 dbg:invader2]
+                     dbg:radar-sample
+                     15)
 
   )
 
 
 (comment ;;;; edge case exploration
-  
+  ;;; minimum example
+  ;; search space
+  [[1 0 1]
+   [1 1 1]
+   [0 0 1]]
+
+  ;; want to detect
+  [[1] [1] [0]]
+
+  (possible-invaders [[[1] [1] [0]]]
+                     [[1 0 1]
+                      [1 1 1]
+                      [0 0 1]]
+                     0)
+
+  ;; kind of annoying to handle its presence elsewhere, e.g.
+  (possible-invaders [[[1] [1] [0]]]
+                     [[1 1 1]
+                      [1 1 1]
+                      [0 0 1]]
+                     0)
+
+  ;; let's try to grab just the left edge of the known shape,
+  ;; and the corresponding right edge of the search space
+  (let [radar [[1 1 1]
+               [1 1 1]
+               [0 0 1]]
+        invader [[1 0 1]
+                 [1 0 1]
+                 [1 0 0]]
+        edge-width 1
+        invader-right-edge (get (permutations-by-xy [edge-width (count invader)] invader)
+                                [(dec (count (first invader)))
+                                 0])
+        radar-left-ledge (get (permutations-by-xy [edge-width (count invader)] radar)
+                              [0 0])]
+     (possible-invaders [invader-right-edge] radar-left-ledge 0))
+
+  (let [radar [[1 1 1]
+               [1 1 1]
+               [0 0 1]]
+        invader [[1 1 1]
+                 [1 1 1]
+                 [1 0 1]]
+        edge-width 2
+        invader-right-edge (get (permutations-by-xy [edge-width (count invader)] invader)
+                                [(- (count (first invader)) edge-width)
+                                 0])
+        radar-left-ledge (get (permutations-by-xy [edge-width (count invader)] radar)
+                              [0 0])]
+     (possible-invaders [invader-right-edge] radar-left-ledge 1))
 
   )
+
+
+(defn invader's-right-edge-detector
+  "Detects the `width` right columns of `shape` on the left edge of `search-space` within `tolerance`"
+  [shape search-space tolerance width]
+  (let [invader-right-edge (get (permutations-by-xy [width (count shape)] shape)
+                                [(- (count (first shape)) width)
+                                 0])
+        radar-left-ledge (get (permutations-by-xy [width (count search-space)] search-space)
+                              [0 0])]
+    (possible-invaders [invader-right-edge] radar-left-ledge tolerance)))
+
+
+(comment
+  ;; minimum example: exact match of single col
+  (invader's-right-edge-detector [[0 1 1]
+                                  [0 1 1]
+                                  [0 0 1]]
+                                 [[1 0 1]
+                                  [1 0 1]
+                                  [1 0 0]]
+                                 0 1)
+  
+  ;; mismatch height
+  (invader's-right-edge-detector [[0 1 1]
+                                  [0 1 1]]
+                                 [[0 0 0]
+                                  [1 0 0]
+                                  [1 0 0]]
+                                 0 1)
+
+  ;; mismatch height w/more width
+  (invader's-right-edge-detector [[0 1 1]
+                                  [0 1 1]]
+                                 [[0 0 0]
+                                  [1 1 0]
+                                  [0 1 0]]
+                                 1 2)
+  
+  ;; multiple matches
+  (invader's-right-edge-detector [[0 1 1]
+                                  [0 1 1]]
+                                 [[1 1 1]
+                                  [1 1 1]
+                                  [1 1 1]
+                                  [0 1 1]]
+                                 ;; note: only 2 matches with 0 tolerance
+                                 1 2)
+
+  )
+
+
+;; TODO left, top, bottom, corners
