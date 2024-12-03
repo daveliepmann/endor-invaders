@@ -4,13 +4,16 @@
   Fns to reveal possible locations of known hostiles in ASCII radar
   signals. Representative signals are in `resources/samples`.
 
-  API consumers: see 'Recommended public API' and `possible-invaders`
+  API consumers: see 'Recommended public API' and `invaders->matches`
 
-  Matches are currently implemented as maps with keys:
+  A Match is a map describing an area of interest. It has keys:
    `:known-shape` - input parameter describing possibly-detected invader rectangle
    `:tolerance` - input parameter which allowed the fuzzy match
    `:match` - the rectangle in the signal which may match a known invader
    `:coords` - x/y coordinates of the match (optional at certain stages)
+   `:dims` - width/height dimensions of the match (optional at certain stages)
+   `noise-count` - number of points in the matching rectangle which did not match the known shape
+   `score` - relative value of the match (higher is better)
 
   Implementation notes
    - all coordinates are from top left
@@ -167,15 +170,12 @@
   "Given a Match map, adds a :score key with the relative value of the match"
   [{:keys [dims noise-count] :as match}]
   (let [[n m] dims]
-    (assoc match :score (if (pos? noise-count)
-                          (/ (* n m) noise-count)
-                          (* n m)))))
+    (assoc match :score (double (if (pos? noise-count)
+                                  (/ (* n m) noise-count)
+                                  (* n m))))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;;; Recommended public API
-
-(defn invader-suspicions
+(defn invader-matches
   "Returns matches of invader `shape` in `search-space` within `tolerance`"
   [shape search-space tolerance]
   (let [dimensions (dims shape)]
@@ -186,27 +186,14 @@
           (permutations-by-xy dimensions search-space))))
 
 (comment
-  (invader-suspicions dbg:invader1 dbg:radar-sample 8)
+  (map assoc-score (invader-matches dbg:invader1 dbg:invader1 8))
+  (map assoc-score (invader-matches dbg:invader1 dbg:radar-sample 12))
 
   )
 
 
-(defn possible-invaders
-  "Returns matches for any invader `shapes` in the `search-space`
-  Allows for `tolerance` number of mismatches points to account for noise."
-  [shapes search-space tolerance]
-  (->> shapes
-       (mapcat #(invader-suspicions % search-space tolerance))
-       (map assoc-score)
-       (sort-by :score)))
-
-(comment
-  (possible-invaders [dbg:invader1 dbg:invader2]
-                     dbg:radar-sample
-                     15)
-
-  )
-
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; edges
 
 (comment ;;;; edge case exploration
   ;;; minimum example
@@ -218,18 +205,18 @@
   ;; want to detect
   [[1] [1] [0]]
 
-  (possible-invaders [[[1] [1] [0]]]
-                     [[1 0 1]
-                      [1 1 1]
-                      [0 0 1]]
-                     0)
+  (invader-matches [[1] [1] [0]]
+                   [[1 0 1]
+                    [1 1 1]
+                    [0 0 1]]
+                   0)
 
   ;; kind of annoying to handle its presence elsewhere, e.g.
-  (possible-invaders [[[1] [1] [0]]]
-                     [[1 1 1]
-                      [1 1 1]
-                      [0 0 1]]
-                     0)
+  (invader-matches [[1] [1] [0]]
+                   [[1 1 1]
+                    [1 1 1]
+                    [0 0 1]]
+                   0)
 
   ;; let's try to grab just the left edge of the known shape,
   ;; and the corresponding right edge of the search space
@@ -245,22 +232,9 @@
                                  0])
         radar-left-edge (get (permutations-by-xy [edge-width (count invader)] radar)
                               [0 0])]
-     (possible-invaders [invader-right-edge] radar-left-edge 0))
+     (invaders->matches [invader-right-edge] radar-left-edge 0))
 
-  (let [radar [[1 1 1]
-               [1 1 1]
-               [0 0 1]]
-        invader [[1 1 1]
-                 [1 1 1]
-                 [1 0 1]]
-        edge-width 2
-        invader-right-edge (get (permutations-by-xy [edge-width (count invader)] invader)
-                                [(- (count (first invader)) edge-width)
-                                 0])
-        radar-left-edge (get (permutations-by-xy [edge-width (count invader)] radar)
-                              [0 0])]
-     (possible-invaders [invader-right-edge] radar-left-edge 1))
-
+  ;; let's extend this to implementation
   )
 
 
@@ -272,7 +246,7 @@
                                  0])
         radar-left-edge (get (permutations-by-xy [width (count search-space)] search-space)
                               [0 0])]
-    (possible-invaders [invader-right-edge] radar-left-edge tolerance)))
+    (invader-matches invader-right-edge radar-left-edge tolerance)))
 
 
 (comment
@@ -322,7 +296,7 @@
         radar-left-edge (get (permutations-by-xy [width (count search-space)] search-space)
                               [(- (count (first search-space)) width)
                                0])]
-    (possible-invaders [invader-right-edge] radar-left-edge tolerance)))
+    (invader-matches invader-right-edge radar-left-edge tolerance)))
 
 (comment
   ;; minimum example: exact match of single col
@@ -363,7 +337,7 @@
         radar-bottom-edge (get (permutations-by-xy [(count (first search-space)) height] search-space)
                                 [0
                                  (- (count search-space) height)])]
-    (possible-invaders [invader-top-edge] radar-bottom-edge tolerance)))
+    (invader-matches invader-top-edge radar-bottom-edge tolerance)))
 
 (comment
   ;; minimum example: exact match of single row
@@ -413,7 +387,7 @@
                                  [0 (- (count shape) height)])
         radar-top-edge (get (permutations-by-xy [(count (first search-space)) height] search-space)
                                 [0 0])]
-    (possible-invaders [invader-bottom-edge] radar-top-edge tolerance)))
+    (invader-matches invader-bottom-edge radar-top-edge tolerance)))
 
 (comment
   ;; minimum example: exact match of single row
@@ -456,3 +430,24 @@
   )
 
 ;; TODO corners
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Recommended public API
+
+(defn invaders->matches
+  "Returns matches for any invader `shapes` in the `search-space`
+  Allows for `tolerance` number of mismatches points to account for noise."
+  [shapes search-space tolerance]
+  (->> shapes
+       (mapcat #(invader-matches % search-space tolerance))
+       (map assoc-score)
+       (sort-by :score)))
+
+(comment
+  (invaders->matches [dbg:invader1 dbg:invader2]
+                     dbg:radar-sample
+                     15)
+
+  )

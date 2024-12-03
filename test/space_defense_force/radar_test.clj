@@ -14,7 +14,7 @@
 (deftest dimensions
   (testing "can get dimensions of vec-of-vecs?"
     (is (thrown? ; TODO find an alternative to this magic
-         IllegalArgumentException
+         clojure.lang.ExceptionInfo
          (dims '(:foo))))
     (is [2 2] (dims [[1 1] [1 1]]))
     (is [11 8] (dims invader1))
@@ -81,7 +81,7 @@
 
 (deftest invader-detection-api
   (testing "can find possible invaders in samples?"
-    (let [scan-result (possible-invaders [invader1 invader2]
+    (let [scan-result (invaders->matches [invader1 invader2]
                                          radar-sample
                                          9)]
       (is (= 4 (count scan-result)))
