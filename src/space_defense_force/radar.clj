@@ -4,13 +4,15 @@
   Fns to reveal possible locations of known hostiles in ASCII radar
   signals. Representative signals are in `resources/samples`.
 
+  API consumers: see 'Recommended public API' and `possible-invaders`
+
   Matches are currently implemented as maps with keys:
    `:known-shape` - input parameter describing possibly-detected invader rectangle
    `:tolerance` - input parameter which allowed the fuzzy match
    `:match` - the rectangle in the signal which may match a known invader
    `:coords` - x/y coordinates of the match (optional at certain stages)
-
-  API consumers: see 'Recommended public API' and `possible-invaders`"
+  
+  Implemented as a windowing problem. All coordinates are from top left."
   (:require [clojure.java.io :as io]
             [clojure.string :as str]))
 
@@ -117,6 +119,7 @@
                    (map (fn [[x y]] (= (get-in rect [x y])
                                       (get-in shape [x y]))))
                    (filter false?)
+                   ;; TODO return count in map
                    count))
       {:known-shape shape, :tolerance tolerance, :match rect})))
 

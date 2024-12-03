@@ -3,6 +3,10 @@ A Space Defense Force project.
 
 This system detects invaders in radar ASCII patterns.
 
+No large language models were used in the implementation of this system.
+
+Original assignment below.
+
 
 ## Assignment
 
