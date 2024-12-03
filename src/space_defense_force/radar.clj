@@ -11,13 +11,13 @@
    `:tolerance` - input parameter which allowed the fuzzy match
    `:match` - the rectangle in the signal which may match a known invader
    `:coords` - x/y coordinates of the match (optional at certain stages)
-  
-  Implemented as a windowing problem. All coordinates are from top left."
+
+  Implementation notes
+   - all coordinates are from top left
+   - treated as a windowing task
+     - the shape of the problem suggests there may be an elegant recursive solution"
   (:require [clojure.java.io :as io]
             [clojure.string :as str]))
-
-
-;; TODO edge cases
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -96,6 +96,9 @@
   )
 
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;; Implementation
+
 (defn permutations-by-xy
   "Returns `n`-wide `m`-tall sub-rectangles in `rectangle`,
   keyed by xy coordinates in the original"
@@ -113,15 +116,15 @@
   "Returns map describing matches of `shape`'s signal within `tolerance` in `rect`"
   [shape rect tolerance]
   (let [xs (range 0 (count rect))
-        ys (range 0 (count (first rect)))]
-    (when (>= tolerance
-              (->> (for [x xs, y ys] [x y])  ; all combos
-                   (map (fn [[x y]] (= (get-in rect [x y])
-                                      (get-in shape [x y]))))
-                   (filter false?)
-                   ;; TODO return count in map
-                   count))
-      {:known-shape shape, :tolerance tolerance, :match rect})))
+        ys (range 0 (count (first rect)))
+        noise-count (->> (for [x xs, y ys] [x y])  ; all combos
+                         (map (fn [[x y]] (= (get-in rect [x y])
+                                            (get-in shape [x y]))))
+                         (filter false?)
+                         count)]
+    (when (>= tolerance noise-count)
+      {:known-shape shape, :match rect
+       :tolerance tolerance, :noise-count noise-count})))
 
 
 (comment ;;; How to use
@@ -158,32 +161,51 @@
   )
 
 
+(defn assoc-score
+  "Given a Match map, adds a :score key with the relative value of the match"
+  [{:keys [dims noise-count] :as match}]
+  (let [[n m] dims]
+    (assoc match :score (/ (* n m)
+                           noise-count))))
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;;; Recommended public API
 
 (defn invader-suspicions
   "Returns matches of invader `shape` in `search-space` within `tolerance`"
   [shape search-space tolerance]
-  (let [xy (dims shape)]
+  (let [dimensions (dims shape)]
     (keep (fn [[xy rect]] (when-let [m (fuzzy-match shape rect tolerance)]
-                           (assoc m :coords xy)))
-          (permutations-by-xy xy search-space))))
+                           (assoc m
+                                  :coords xy
+                                  :dims dimensions)))
+          (permutations-by-xy dimensions search-space))))
 
 (comment
   (invader-suspicions dbg:invader1 dbg:radar-sample 8)
 
   )
 
+
 (defn possible-invaders
   "Returns matches for any invader `shapes` in the `search-space`
   Allows for `tolerance` number of mismatches points to account for noise."
   [shapes search-space tolerance]
-  (mapcat #(invader-suspicions % search-space tolerance)
-          shapes))
+  (->> shapes
+       (mapcat #(invader-suspicions % search-space tolerance))
+       (map assoc-score)
+       (sort-by :score)))
 
 (comment
-  (possible-invaders [dbg:invader1 dbg:invader2]
-                     dbg:radar-sample
-                     15)
+  (map :score (possible-invaders [dbg:invader1 dbg:invader2]
+                      dbg:radar-sample
+                      15))
+
+  )
+
+
+(comment ;;;; edge case exploration
+  
 
   )

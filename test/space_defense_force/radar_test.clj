@@ -85,7 +85,7 @@
                                          radar-sample
                                          9)]
       (is (= 4 (count scan-result)))
-      (is (every? (every-pred :coords :known-shape :match :tolerance)
+      (is (every? (every-pred :coords :known-shape :match :tolerance :noise-count :score)
                   scan-result))
       (is (= #{[60 13] [16 28] [82 41] [42 0]}
              (set (map :coords scan-result)))))))
