@@ -165,8 +165,9 @@
   "Given a Match map, adds a :score key with the relative value of the match"
   [{:keys [dims noise-count] :as match}]
   (let [[n m] dims]
-    (assoc match :score (/ (* n m)
-                           noise-count))))
+    (assoc match :score (if (pos? noise-count)
+                          (/ (* n m) noise-count)
+                          (* n m)))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
