@@ -79,15 +79,229 @@
       (is (= invader1' (:match (fuzzy-match invader1 invader1' 2)))))))
 
 
+(def match?
+  (every-pred :coords :known-shape :match :tolerance :noise-count :score))
+
+(def unscored-match?
+  (every-pred :coords :known-shape :match :tolerance :noise-count))
+
 (deftest invader-detection-api
   (testing "can find possible invaders in samples?"
     (let [scan-result (invaders->matches [invader1 invader2]
                                          radar-sample
                                          9)]
       (is (= 4 (count scan-result)))
-      (is (every? (every-pred :coords :known-shape :match :tolerance :noise-count :score)
-                  scan-result))
+      (is (every? match? scan-result))
       (is (= #{[60 13] [16 28] [82 41] [42 0]}
              (set (map :coords scan-result)))))))
 
-;; TODO test edge detection fns `invader's-right-edge-detector` usw.
+;; TODO more details for below testing of edge-case fns `invader's-right-edge-detector` usw.
+
+(deftest edge:invader|space
+  (testing "invader right edge (space left edge)"
+    (testing "minimum example: exact match of single col"
+      (let [match-1x3 (invader's-right-edge-detector [[0 1 1]
+                                                      [0 1 1]
+                                                      [0 0 1]]
+                                                     [[1 0 1]
+                                                      [1 0 1]
+                                                      [1 0 0]]
+                                                     0 1)]
+        (is (= 1 (count match-1x3)))
+        (is (unscored-match? (first match-1x3)))
+        (is (= [[1] [1] [1]]
+               (:known-shape (first match-1x3))
+               (:match (first match-1x3))))))
+    (testing "mismatch height"
+      (let [match-1x2 (invader's-right-edge-detector [[0 1 1]
+                                                      [0 1 1]]
+                                                     [[0 0 0]
+                                                      [1 0 0]
+                                                      [1 0 0]]
+                                                     0 1)]
+        (is (= 1 (count match-1x2)))
+        (is (unscored-match? (first match-1x2)))
+        (is (= [[1] [1]]
+               (:known-shape (first match-1x2))
+               (:match (first match-1x2))))))  
+    (testing "mismatch height w/more width"
+      (let [match-2x2 (invader's-right-edge-detector [[0 1 1]
+                                                      [0 1 1]]
+                                                     [[0 0 0]
+                                                      [1 1 0]
+                                                      [0 1 0]]
+                                                     1 2)]
+        (is (= 1 (count match-2x2)))
+        (is (unscored-match? (first match-2x2)))
+        (is (= [[1 1] [1 1]]
+               (:known-shape (first match-2x2))))
+        (is (= [[1 1] [0 1]]
+               (:match (first match-2x2))))))
+    (testing "multiple matches"
+      (let [matches-2x2 (invader's-right-edge-detector [[0 1 1]
+                                                        [0 1 1]]
+                                                       [[1 1 1]
+                                                        [1 1 1]
+                                                        [1 1 1]
+                                                        [0 1 1]]
+                                                       ;; note: only 2 matches with 0 tolerance
+                                                       1 2)]
+        (is (= 3 (count matches-2x2)))
+        (is (every? unscored-match? matches-2x2))
+        (is (= [[1 1] [1 1]]
+               (:known-shape (first matches-2x2))
+               (:match (first matches-2x2))))))))
+
+
+
+(deftest edge:space|invader
+  (testing "invader left edge (space right edge)"
+    (testing "minimum example: exact match of single col"
+      (let [match-1x3 (invader's-left-edge-detector [[0 1 1]
+                                                     [0 1 1]
+                                                     [0 1 1]]
+                                                    [[1 1 0]
+                                                     [1 1 0]
+                                                     [1 1 0]]
+                                                    0 1)]
+        (is (= 1 (count match-1x3)))
+        (is (unscored-match? (first match-1x3)))
+        (is (= [[0] [0] [0]]
+               (:known-shape (first match-1x3))
+               (:match (first match-1x3))))))
+    (testing "mismatch height"
+      (let [match-1x2 (invader's-left-edge-detector [[1 1 1]
+                                                     [1 1 1]]
+                                                    [[0 0 0]
+                                                     [0 0 1]
+                                                     [0 0 1]]
+                                                    0 1)]        
+        (is (= 1 (count match-1x2)))
+        (is (unscored-match? (first match-1x2)))
+        (is (= [[1] [1]]
+               (:known-shape (first match-1x2))
+               (:match (first match-1x2))))))
+    (testing "multiple matches"
+      (let [matches-2x2 (invader's-left-edge-detector [[1 1 1]
+                                                       [1 1 1]]
+                                                      [[0 1 1]
+                                                       [0 1 1]
+                                                       [0 1 1]
+                                                       [0 0 1]]
+                                                      ;; note: only 2 matches with 0 tolerance
+                                                      1 2)]
+        (is (= 3 (count matches-2x2)))
+        (is (every? unscored-match? matches-2x2))
+        (is (= [[1 1] [1 1]]
+               (:known-shape (first matches-2x2))
+               (:match (first matches-2x2))))))))
+
+
+(deftest edge:space>invader
+  (testing "invader top edge (radar bottom edge)"
+    (testing "minimum example: exact match of single row"
+      (let [match-3x1 (invader's-top-edge-detector [[1 1 1]
+                                                    [0 0 0]
+                                                    [0 0 0]]
+                                                   [[0 0 0]
+                                                    [0 0 0]
+                                                    [1 1 1]]
+                                                   0 1)]
+        (is (= 1 (count match-3x1)))
+        (is (unscored-match? (first match-3x1)))
+        (is (= [[1 1 1]]
+               (:known-shape (first match-3x1))
+               (:match (first match-3x1))))))
+    (testing "mismatch width"
+      (let [match-2x1 (invader's-top-edge-detector [[1 1]
+                                                    [0 0]]
+                                                   [[0 0 0]
+                                                    [0 0 1]
+                                                    [0 1 1]]
+                                                   0 1)]
+        (is (unscored-match? (first match-2x1)))
+        (is (= [[1 1]]
+               (:known-shape (first match-2x1))
+               (:match (first match-2x1))))))
+    (testing "multiple matches"
+      (let [matches-2x1 (invader's-top-edge-detector
+                         [[1 1]
+                          [0 0]]
+                         [[0 0 0 0]
+                          [0 0 0 0]
+                          [0 0 0 0]
+                          [0 1 1 1]]
+                         ;; note: only 2 matches with 0 tolerance
+                         0 1)]
+        (is (= 2 (count matches-2x1)))
+        (is (every? unscored-match? matches-2x1))
+        (is (= [[1 1]]
+               (:known-shape (first matches-2x1))
+               (:match (first matches-2x1))))))
+    (testing "deeper height"
+      (let [matches-2x2 (invader's-top-edge-detector
+                         [[1 1]
+                          [1 1]]
+                         [[0 0 0 0]
+                          [0 0 0 0]
+                          [1 1 1 1]
+                          [0 1 0 1]]
+                         ;; note: 0 matches with 0 tolerance
+                         1 #_0 2)]
+        (is (= 3 (count matches-2x2)))
+        (is (every? unscored-match? matches-2x2))))))
+
+
+(deftest edge:invader>space
+  (testing "invader bottom edge (radar top edge)"
+    (testing "minimum example: exact match of single row"
+      (let [match-3x1 (invader's-bottom-edge-detector [[1 1 1]
+                                                       [0 0 0]
+                                                       [0 0 0]]
+                                                      [[0 0 0]
+                                                       [0 0 0]
+                                                       [1 1 1]]
+                                                      0 1)]
+        (is (= 1 (count match-3x1)))
+        (is (unscored-match? (first match-3x1)))
+        (is (= [[0 0 0]]
+               (:known-shape (first match-3x1))
+               (:match (first match-3x1))))))
+    (testing "mismatch width"
+      (let [match-2x1 (invader's-bottom-edge-detector [[1 1]
+                                                       [0 0]]
+                                                      [[0 0 0]
+                                                       [0 0 1]
+                                                       [0 1 1]]
+                                                      0 1)]
+        (is (unscored-match? (first match-2x1)))
+        (is (= [[0 0]]
+               (:known-shape (first match-2x1))
+               (:match (first match-2x1))))))
+    (testing "multiple matches"
+      (let [matches-2x1 (invader's-bottom-edge-detector
+                         [[1 1]
+                          [0 0]]
+                         [[0 0 0 0]
+                          [0 0 0 0]
+                          [0 0 0 0]
+                          [0 1 1 1]]
+                         ;; note: only 2 matches with 0 tolerance
+                         0 1)]
+        (is (= 3 (count matches-2x1)))
+        (is (every? unscored-match? matches-2x1))
+        (is (= [[0 0]]
+               (:known-shape (first matches-2x1))
+               (:match (first matches-2x1))))))
+    (testing "deeper height"
+      (let [matches-2x2 (invader's-bottom-edge-detector [[0 0]
+                                                         [1 1]
+                                                         [1 1]]
+                                                        [[1 1 1 1]
+                                                         [1 1 0 1]
+                                                         [0 0 0 0]
+                                                         [0 0 0 0]]
+                                                        ;; note: 1 match with 0 tolerance
+                                                        1 2)]
+        (is (= 3 (count matches-2x2)))
+        (is (every? unscored-match? matches-2x2))))))

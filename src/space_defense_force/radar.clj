@@ -249,6 +249,7 @@
                                  0])
         radar-left-edge (get (permutations-by-xy [width (count search-space)] search-space)
                               [0 0])]
+    ;; FIXME :coords matches slice, not whole
     (invader-matches invader-right-edge radar-left-edge tolerance)))
 
 
@@ -299,6 +300,7 @@
         radar-left-edge (get (permutations-by-xy [width (count search-space)] search-space)
                               [(- (count (first search-space)) width)
                                0])]
+    ;; FIXME :coords matches slice, not whole
     (invader-matches invader-right-edge radar-left-edge tolerance)))
 
 (comment
@@ -338,8 +340,8 @@
   (let [invader-top-edge (get (permutations-by-xy [(count (first shape)) height] shape)
                                 [0 0])
         radar-bottom-edge (get (permutations-by-xy [(count (first search-space)) height] search-space)
-                                [0
-                                 (- (count search-space) height)])]
+                                [0 (- (count search-space) height)])]
+    ;; FIXME :coords matches slice, not whole
     (invader-matches invader-top-edge radar-bottom-edge tolerance)))
 
 (comment
@@ -390,6 +392,7 @@
                                  [0 (- (count shape) height)])
         radar-top-edge (get (permutations-by-xy [(count (first search-space)) height] search-space)
                                 [0 0])]
+    ;; FIXME :coords matches slice, not whole
     (invader-matches invader-bottom-edge radar-top-edge tolerance)))
 
 (comment
